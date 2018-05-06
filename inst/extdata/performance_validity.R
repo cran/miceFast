@@ -1,6 +1,6 @@
 #library(devtools)
 #install_github("Rcpp","RcppCore")
-#install.packages("pacman)
+#install.packages("pacman")
 library(pacman)
 
 p_load(Rcpp,
@@ -8,20 +8,21 @@ p_load(Rcpp,
        tidyverse,
        ggthemes,
        broom,
-       miceFast)
+       miceFast,
+       data.table)
 
 
 set.seed(1234)
 
 #parameters
 
-power = 5 # power of 10 - number of observations - should be adjusted to a computer capabilities
+power = 6 # power of 10 - number of observations - should be adjusted to a computer capabilities
 
 nr_var = 7 #CHANGE - only if you generate a bigger corr matrix:  number of variables - independent and one dependent
 
 grs = max(c(10**(power-3),10)) # grouping variable - number of groups
 
-iters = 100 # number of iterations for benchmarking
+iters = 10 # number of iterations for benchmarking
 
 ## generete example - data
 
@@ -60,12 +61,13 @@ posit_x = 2:(n_vars-2)
 posit_w = n_vars-1
 posit_grs = n_vars
 posit_NA = n_vars+1
+posit_index = n_vars+2
 
 ## NA index
 
 index_NA = 1:nrow(data_con) %in% sample(1:nrow(data_con),10^(power-1))
 
-fill_NA = function(v,index_NA){
+fill_by_NA = function(v,index_NA){
 
   v[index_NA] = NA
 
@@ -82,13 +84,15 @@ w_d = abs(data_disc[,posit_w])
 w_c = abs(data_con[,posit_w])
 w_b = abs(data_bin[,posit_w])
 
-data_disc_NA = cbind(fill_NA(data_disc[,posit_y],index_NA),data_disc[,posit_x],w_d,group_d,index_NA)
-data_con_NA = cbind(fill_NA(data_con[,posit_y],index_NA),data_con[,posit_x],w_c,group_c,index_NA)
-data_bin_NA = cbind(fill_NA(data_bin[,posit_y],index_NA),data_bin[,posit_x],w_b,group_b,index_NA)
+index = 1:(10**power)
 
-colnames(data_bin_NA) = c("y",paste0("x",posit_x),"weights","group","index_NA")
-colnames(data_disc_NA) = c("y",paste0("x",posit_x),"weights","group","index_NA")
-colnames(data_con_NA) = c("y",paste0("x",posit_x),"weights","group","index_NA")
+data_disc_NA = cbind(fill_by_NA(data_disc[,posit_y],index_NA),data_disc[,posit_x],w_d,group_d,index_NA,index)
+data_con_NA = cbind(fill_by_NA(data_con[,posit_y],index_NA),data_con[,posit_x],w_c,group_c,index_NA,index)
+data_bin_NA = cbind(fill_by_NA(data_bin[,posit_y],index_NA),data_bin[,posit_x],w_b,group_b,index_NA,index)
+
+colnames(data_bin_NA) = c("y",paste0("x",posit_x),"weights","group","index_NA","index")
+colnames(data_disc_NA) = c("y",paste0("x",posit_x),"weights","group","index_NA","index")
+colnames(data_con_NA) = c("y",paste0("x",posit_x),"weights","group","index_NA","index")
 
 
 ######################Discrete
@@ -124,6 +128,10 @@ index_rev = sort(sort(data_disc_NA[,posit_grs],index.return=TRUE)$ix,index.retur
 
 data_disc_NA_sort = data_disc_NA[index_sort,]
 
+data_disc_NA_sort_DF = as.data.frame(data_disc_NA_sort)
+
+true_y = data_disc[index_sort,][index_NA[index_sort],posit_y]
+
 pred_Rbase = NULL
 for(i in unique(data_disc_NA_sort[,posit_grs])){
     sub = data_disc_NA_sort[,posit_grs]==i
@@ -132,13 +140,25 @@ for(i in unique(data_disc_NA_sort[,posit_grs])){
     pred_Rbase = c(pred_Rbase,as.numeric(pred))
 }
 
-pred_dplyr = data_disc_NA_sort %>%
-  as.data.frame() %>%
+table(pred_Rbase,true_y)
+
+pred_dplyr = data_disc_NA_sort_DF %>%
   group_by(group) %>%
   do(im = mice.impute.lda(as.matrix(.[,posit_y]),!.$index_NA,as.matrix(.[,posit_x]))) %>%
-  tidy(im) %>%  arrange(group) %>% ungroup()%>% select(x) %>% unlist() %>% as.numeric()
+  tidy(im) %>%  arrange(group) %>% ungroup()%>% select(x) %>% unlist()
 
-data = data_disc_NA_sort[,c(posit_y,posit_x)]
+table(pred_dplyr,true_y)
+
+data_disc_NA_sort_DT = data.table(data_disc_NA_sort)
+pred_datatable = data_disc_NA_sort_DT[,{im=mice.impute.lda(as.matrix(.SD[,1]),!index_NA,as.matrix(.SD[,c(2,3,4,5)]))},by=.(group)]
+
+table(pred_datatable[['V1']],true_y)
+
+pred_datatable_miceFast = data_disc_NA_sort_DT[,{im=fill_NA(as.matrix(.SD),"lda",1,c(2,3,4,5))},by=.(group)]
+
+table(pred_datatable_miceFast[['V1']][index_NA[index_sort]],true_y)
+
+data = data_disc_NA_sort
 g = data_disc_NA_sort[,posit_grs]
 
 model = new(miceFast)
@@ -146,35 +166,29 @@ model$set_data(data)
 model$set_g(g)
 pred_miceFast =  model$impute("lda",posit_y,posit_x)
 
-true_y = data_disc[index_sort,][index_NA[index_sort],posit_y]
-
 table(pred_miceFast$imputations[as.logical(pred_miceFast$index_imp)],true_y)
-# rotate = sample(1:nrow(data),nrow(data))
-#
-# model = new(miceFast)
-# model$set_data(data[rotate,])
-# model$set_g(g[rotate])
-# pred_miceFast =  model$impute("lda",posit_y,posit_x)
-#
-# true_y = data_disc[index_sort,][rotate,][index_NA[index_sort][rotate],posit_y]
-#
-# table(pred_miceFast$imputations[order(model$get_index())][as.logical(pred_miceFast$index_imputed[order(model$get_index())])],true_y)
-table(pred_dplyr,true_y)
-table(pred_Rbase,true_y)
+
+data = data_disc_NA
+g = data_disc_NA[,posit_grs]
+model = new(miceFast)
+model$set_data(data_disc_NA)
+model$set_g(g)
+pred_miceFast_rotate =  model$impute("lda",posit_y,posit_x)
+
+table(pred_miceFast_rotate$imputations[order(model$get_index())][as.logical(pred_miceFast$index_imp)[order(model$get_index())]],data_disc[index_NA,posit_y])
 
 ##Performance
 
 m2 = microbenchmark::microbenchmark(
   dplyr={
-  pred_dplyr = data_disc_NA_sort %>%
-    as.data.frame() %>%
+  pred_dplyr = data_disc_NA_sort_DF %>%
     group_by(group) %>%
     do(im = mice.impute.lda(as.matrix(.[,posit_y]),!.$index_NA,as.matrix(.[,posit_x]))) %>%
     tidy(im)  %>%
     ungroup()%>%
     select(x) %>%
-    unlist() %>%
-    as.numeric()},
+    unlist() },
+  DT={pred_datatable= data_disc_NA_sort_DT[,{im=mice.impute.lda(as.matrix(.SD[,1]),!index_NA,as.matrix(.SD[,c(2,3,4,5)]))},by=.(group)]},
   R_base={
       pred_all = NULL
       for(i in unique(data_disc_NA_sort[,nr_var])){
@@ -194,7 +208,7 @@ m2
 
 g2 = autoplot(m2,log=FALSE)+theme_economist()+ ggtitle("LDA discrete - with grouping")
 
-ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata/images/g2.png",g2)
+ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata//images/g2.png",g2)
 
 
 #######################Binom
@@ -222,7 +236,7 @@ m3
 
 g3 = autoplot(m3,log=FALSE)+theme_economist()+ ggtitle("LDA binom - without grouping")
 
-ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata/images/g3.png",g3)
+ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata//images/g3.png",g3)
 
 
 #####################Continous - LM Noise
@@ -250,7 +264,7 @@ m4
 
 g4 = autoplot(m4,log=FALSE)+theme_economist()+ ggtitle("linear regression noise - without grouping")
 
-ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata/images/g4.png",g4)
+ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata//images/g4.png",g4)
 
 
 
@@ -279,18 +293,18 @@ m5
 
 g5 = autoplot(m5,log=FALSE)+theme_economist()+ ggtitle("linear regression bayes - without grouping")
 
-ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata/images/g5.png",g5)
+ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata//images/g5.png",g5)
 
 #####################Continous - LM Predict
 
 
 mice.impute.norm.pred = mice.impute.norm.predict(data_con[,posit_y],!index_NA,data_con[,posit_x])
 
-data = data_con_NA[,c(posit_y,posit_x)]
+data = cbind(data_con_NA[,c(posit_y,posit_x)],1)
 
 model = new(miceFast)
 model$set_data(data)
-pred_miceFast =  model$impute("lm_pred",posit_y,posit_x)
+pred_miceFast =  model$impute("lm_pred",posit_y,c(posit_x,max(posit_x)+1))
 
 sum((pred_miceFast$imputations[index_NA] - data_con[index_NA,posit_y])^2)
 sum((mice.impute.norm.pred - data_con[index_NA,posit_y])^2)
@@ -308,7 +322,7 @@ m6
 
 g6 = autoplot(m6,log=FALSE)+theme_economist()+ ggtitle("linear regression predict - without grouping")
 
-ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata/images/g6.png",g6)
+ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata//images/g6.png",g6)
 
 
 ## grouping variable
@@ -333,6 +347,12 @@ pred_dplyr = data_con_NA_sort %>%
     do(im = mice.impute.norm.predict(as.matrix(.[,posit_y]),!.$index_NA,as.matrix(.[,posit_x]))) %>%
     tidy(im)  %>% ungroup()%>% select(x) %>% unlist() %>% as.numeric()
 
+data_con_NA_sort_DT = data.table(data_con_NA_sort)
+
+pred_datatable = data_con_NA_sort_DT[,{im=mice.impute.norm.predict(as.matrix(.SD[,1]),!index_NA,as.matrix(.SD[,c(2,3,4,5)]))},by=.(group)]
+
+pred_datatable_miceFast = data_con_NA_sort_DT[,{im=fill_NA(cbind(as.matrix(.SD),1),"lm_pred",1,c(2,3,4,5,9))},by=.(group)]
+
 data = cbind(data_con_NA_sort[,c(posit_y,posit_x)],1)
 g = data_con_NA_sort[,posit_grs]
 
@@ -346,6 +366,8 @@ true_y = data_con[index_sort,][index_NA[index_sort],posit_y]
 sum((pred_miceFast$imputations[as.logical(pred_miceFast$index_imputed)]-true_y)^2)
 sum((pred_dplyr-true_y)^2)
 sum((pred_Rbase-true_y)^2)
+sum((pred_datatable$V1-true_y)^2)
+sum((pred_datatable_miceFast$V1[index_NA[index_sort]]-true_y)^2)
 
 ##Performance
 
@@ -375,7 +397,9 @@ m7 = microbenchmark::microbenchmark(
     model$set_data(data)
     model$set_g(g)
     pred_miceFast =  model$impute("lm_pred",posit_y,posit_x)},
-  times=iters)
+  times=iters,
+  DT={pred_datatable= data_disc_NA_sort_DT[,{im=mice.impute.norm.predict(as.matrix(.SD[,1]),!index_NA,as.matrix(.SD[,c(2,3,4,5)]))},by=.(group)]}
+)
 
 m7
 
@@ -383,7 +407,7 @@ g7 = autoplot(m7,log=FALSE)+
   theme_economist()+
   ggtitle("linear regression predict - with grouping")
 
-ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata/images/g7.png",g7)
+ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata//images/g7.png",g7)
 
 
 ####
@@ -414,7 +438,7 @@ m8
 
 g8 = autoplot(m8,log=FALSE)+theme_economist()+ ggtitle("linear regression noise - without grouping - multiple 10")
 
-ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata/images/g8.png",g8)
+ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata//images/g8.png",g8)
 
 #####################Continous - LM Bayes
 
@@ -440,5 +464,28 @@ m9
 
 g9 = autoplot(m9,log=FALSE)+theme_economist()+ ggtitle("linear regression bayes - without grouping - multiple 10")
 
-ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata/images/g9.png",g9)
+ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata//images/g9.png",g9)
 
+
+#plot for README/Intro
+
+dats = bind_rows(list(
+data.frame(m1) %>% mutate(model = "LDA discrete - without grouping"),
+data.frame(m2) %>% mutate(model = "LDA discrete - with grouping"),
+data.frame(m3) %>% mutate(model = "LDA binom - without grouping"),
+data.frame(m4) %>% mutate(model = "linear regression noise - without grouping"),
+data.frame(m5) %>% mutate(model = "linear regression bayes - without grouping"),
+data.frame(m6) %>% mutate(model = "linear regression predict - without grouping"),
+data.frame(m7) %>% mutate(model = "linear regression predict - with grouping"),
+data.frame(m8) %>% mutate(model = "linear regression noise - without grouping - multiple 10"),
+data.frame(m9) %>% mutate(model = "linear regression bayes - without grouping - multiple 10")
+))
+
+dats_plot = dats %>% group_by(model,expr) %>% summarise(mean_time_sec=mean(time/10**9)) %>% group_by(model) %>% mutate(relative_time=mean_time_sec/min(mean_time_sec))
+
+g_summary = ggplot(dats_plot,aes(model,mean_time_sec,fill=expr)) +
+  geom_bar(stat="identity",position="dodge") +
+  theme(axis.text.x= element_text(angle=90)) +
+  ggtitle("Benchmarks - 10^6 obs (10% NA) 7 vars - 10^3 groups")
+
+ggsave("C:/Users/user/Desktop/own_R_packages/miceFast/inst/extdata/images/g_summary.png",g_summary)

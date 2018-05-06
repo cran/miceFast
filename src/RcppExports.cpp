@@ -6,11 +6,58 @@
 
 using namespace Rcpp;
 
+// VIF
+arma::vec VIF(arma::mat& x, int posit_y, arma::uvec posit_x);
+RcppExport SEXP _miceFast_VIF(SEXP xSEXP, SEXP posit_ySEXP, SEXP posit_xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type posit_y(posit_ySEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type posit_x(posit_xSEXP);
+    rcpp_result_gen = Rcpp::wrap(VIF(x, posit_y, posit_x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// fill_NA_N
+arma::colvec fill_NA_N(arma::mat& x, std::string model, int posit_y, arma::uvec posit_x, arma::colvec w, int times);
+RcppExport SEXP _miceFast_fill_NA_N(SEXP xSEXP, SEXP modelSEXP, SEXP posit_ySEXP, SEXP posit_xSEXP, SEXP wSEXP, SEXP timesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< int >::type posit_y(posit_ySEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type posit_x(posit_xSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type w(wSEXP);
+    Rcpp::traits::input_parameter< int >::type times(timesSEXP);
+    rcpp_result_gen = Rcpp::wrap(fill_NA_N(x, model, posit_y, posit_x, w, times));
+    return rcpp_result_gen;
+END_RCPP
+}
+// fill_NA
+arma::colvec fill_NA(arma::mat& x, std::string model, int posit_y, arma::uvec posit_x, arma::colvec w);
+RcppExport SEXP _miceFast_fill_NA(SEXP xSEXP, SEXP modelSEXP, SEXP posit_ySEXP, SEXP posit_xSEXP, SEXP wSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< int >::type posit_y(posit_ySEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type posit_x(posit_xSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type w(wSEXP);
+    rcpp_result_gen = Rcpp::wrap(fill_NA(x, model, posit_y, posit_x, w));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 RcppExport SEXP _rcpp_module_boot_corrData();
 RcppExport SEXP _rcpp_module_boot_miceFast();
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_miceFast_VIF", (DL_FUNC) &_miceFast_VIF, 3},
+    {"_miceFast_fill_NA_N", (DL_FUNC) &_miceFast_fill_NA_N, 6},
+    {"_miceFast_fill_NA", (DL_FUNC) &_miceFast_fill_NA, 5},
     {"_rcpp_module_boot_corrData", (DL_FUNC) &_rcpp_module_boot_corrData, 0},
     {"_rcpp_module_boot_miceFast", (DL_FUNC) &_rcpp_module_boot_miceFast, 0},
     {NULL, NULL, 0}
