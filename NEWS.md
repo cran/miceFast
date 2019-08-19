@@ -1,3 +1,14 @@
+# 0.5.1
+
+* remove old urls form vignettes
+
+# 0.5.0
+
+* providing a more comfortable environment for data.table/dplyr users
+* expand vignette and documentation
+* updated performance benchmarks
+* fix a glitch - e.g. lack of correct warning for a lda model with zero variance variables
+
 # 0.2.1-3
 
 * data.table problem - jump to R 3.5.0
