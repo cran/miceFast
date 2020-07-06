@@ -5,11 +5,49 @@ VIF_ <- function(x, posit_y, posit_x, posit_x_var, correct) {
     .Call(`_miceFast_VIF_`, x, posit_y, posit_x, posit_x_var, correct)
 }
 
-fill_NA_N_ <- function(x, model, posit_y, posit_x, w, times = 10L) {
-    .Call(`_miceFast_fill_NA_N_`, x, model, posit_y, posit_x, w, times)
+fill_NA_N_ <- function(x, model, posit_y, posit_x, w, k = 10L, ridge = 1e-6) {
+    .Call(`_miceFast_fill_NA_N_`, x, model, posit_y, posit_x, w, k, ridge)
 }
 
-fill_NA_ <- function(x, model, posit_y, posit_x, w) {
-    .Call(`_miceFast_fill_NA_`, x, model, posit_y, posit_x, w)
+fill_NA_ <- function(x, model, posit_y, posit_x, w, ridge = 1e-6) {
+    .Call(`_miceFast_fill_NA_`, x, model, posit_y, posit_x, w, ridge)
+}
+
+#' Finding in random manner one of the k closets points in a certain vector for each value in a second vector
+#'
+#' @description this function using pre-sorting of a y and the binary search the one of the k closest value for each miss is returned.
+#'
+#' @param y numeric vector values to be look up
+#' @param miss numeric vector a values to be look for
+#' @param k integer a number of values which should be taken into account during sampling one of the k closest point
+#'
+#' @return a numeric vector
+#'
+#' @name neibo
+#'
+#' @export
+neibo <- function(y, miss, k) {
+    .Call(`_miceFast_neibo`, y, miss, k)
+}
+
+#' Finding in random manner one of the k closets points in a certain vector for each value in a second vector
+#'
+#' @description this function using pre-sorting of a \code{y} and the by the binary search the one of the k closest value for each miss is returned.
+#'
+#' @param y numeric vector values to be look up
+#' @param miss numeric vector a values to be look for
+#' @param k integer a number of values which should be taken into account during sampling one of the k closest point
+#'
+#' @return a numeric vector
+#'
+#' @name neibo_index
+#'
+#' @export
+neibo_index <- function(y, miss, k) {
+    .Call(`_miceFast_neibo_index`, y, miss, k)
+}
+
+pmm_weighted_neibo <- function(y, X, w, X1, k, ridge) {
+    .Call(`_miceFast_pmm_weighted_neibo`, y, X, w, X1, k, ridge)
 }
 

@@ -22,8 +22,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fill_NA_N_
-arma::colvec fill_NA_N_(arma::mat& x, std::string model, int posit_y, arma::uvec posit_x, arma::colvec w, int times);
-RcppExport SEXP _miceFast_fill_NA_N_(SEXP xSEXP, SEXP modelSEXP, SEXP posit_ySEXP, SEXP posit_xSEXP, SEXP wSEXP, SEXP timesSEXP) {
+arma::colvec fill_NA_N_(arma::mat& x, std::string model, int posit_y, arma::uvec posit_x, arma::colvec w, int k, double ridge);
+RcppExport SEXP _miceFast_fill_NA_N_(SEXP xSEXP, SEXP modelSEXP, SEXP posit_ySEXP, SEXP posit_xSEXP, SEXP wSEXP, SEXP kSEXP, SEXP ridgeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -32,14 +32,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type posit_y(posit_ySEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type posit_x(posit_xSEXP);
     Rcpp::traits::input_parameter< arma::colvec >::type w(wSEXP);
-    Rcpp::traits::input_parameter< int >::type times(timesSEXP);
-    rcpp_result_gen = Rcpp::wrap(fill_NA_N_(x, model, posit_y, posit_x, w, times));
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< double >::type ridge(ridgeSEXP);
+    rcpp_result_gen = Rcpp::wrap(fill_NA_N_(x, model, posit_y, posit_x, w, k, ridge));
     return rcpp_result_gen;
 END_RCPP
 }
 // fill_NA_
-arma::colvec fill_NA_(arma::mat& x, std::string model, int posit_y, arma::uvec posit_x, arma::colvec w);
-RcppExport SEXP _miceFast_fill_NA_(SEXP xSEXP, SEXP modelSEXP, SEXP posit_ySEXP, SEXP posit_xSEXP, SEXP wSEXP) {
+arma::colvec fill_NA_(arma::mat& x, std::string model, int posit_y, arma::uvec posit_x, arma::colvec w, double ridge);
+RcppExport SEXP _miceFast_fill_NA_(SEXP xSEXP, SEXP modelSEXP, SEXP posit_ySEXP, SEXP posit_xSEXP, SEXP wSEXP, SEXP ridgeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -48,7 +49,50 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type posit_y(posit_ySEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type posit_x(posit_xSEXP);
     Rcpp::traits::input_parameter< arma::colvec >::type w(wSEXP);
-    rcpp_result_gen = Rcpp::wrap(fill_NA_(x, model, posit_y, posit_x, w));
+    Rcpp::traits::input_parameter< double >::type ridge(ridgeSEXP);
+    rcpp_result_gen = Rcpp::wrap(fill_NA_(x, model, posit_y, posit_x, w, ridge));
+    return rcpp_result_gen;
+END_RCPP
+}
+// neibo
+arma::colvec neibo(arma::colvec y, arma::colvec miss, int k);
+RcppExport SEXP _miceFast_neibo(SEXP ySEXP, SEXP missSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::colvec >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type miss(missSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(neibo(y, miss, k));
+    return rcpp_result_gen;
+END_RCPP
+}
+// neibo_index
+arma::uvec neibo_index(arma::colvec y, arma::colvec miss, int k);
+RcppExport SEXP _miceFast_neibo_index(SEXP ySEXP, SEXP missSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::colvec >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type miss(missSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(neibo_index(y, miss, k));
+    return rcpp_result_gen;
+END_RCPP
+}
+// pmm_weighted_neibo
+arma::colvec pmm_weighted_neibo(arma::colvec& y, arma::mat& X, arma::colvec& w, arma::mat& X1, int k, double ridge);
+RcppExport SEXP _miceFast_pmm_weighted_neibo(SEXP ySEXP, SEXP XSEXP, SEXP wSEXP, SEXP X1SEXP, SEXP kSEXP, SEXP ridgeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::colvec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< arma::colvec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X1(X1SEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< double >::type ridge(ridgeSEXP);
+    rcpp_result_gen = Rcpp::wrap(pmm_weighted_neibo(y, X, w, X1, k, ridge));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -58,8 +102,11 @@ RcppExport SEXP _rcpp_module_boot_miceFast();
 
 static const R_CallMethodDef CallEntries[] = {
     {"_miceFast_VIF_", (DL_FUNC) &_miceFast_VIF_, 5},
-    {"_miceFast_fill_NA_N_", (DL_FUNC) &_miceFast_fill_NA_N_, 6},
-    {"_miceFast_fill_NA_", (DL_FUNC) &_miceFast_fill_NA_, 5},
+    {"_miceFast_fill_NA_N_", (DL_FUNC) &_miceFast_fill_NA_N_, 7},
+    {"_miceFast_fill_NA_", (DL_FUNC) &_miceFast_fill_NA_, 6},
+    {"_miceFast_neibo", (DL_FUNC) &_miceFast_neibo, 3},
+    {"_miceFast_neibo_index", (DL_FUNC) &_miceFast_neibo_index, 3},
+    {"_miceFast_pmm_weighted_neibo", (DL_FUNC) &_miceFast_pmm_weighted_neibo, 6},
     {"_rcpp_module_boot_corrData", (DL_FUNC) &_rcpp_module_boot_corrData, 0},
     {"_rcpp_module_boot_miceFast", (DL_FUNC) &_rcpp_module_boot_miceFast, 0},
     {NULL, NULL, 0}

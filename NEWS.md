@@ -1,3 +1,12 @@
+
+# 0.6.0
+
+* fast PMM - pre-sorting and binary search
+* naice_fill_NA - auto function for data.frames - bayes mean and lda
+* codecov
+* ridge argument
+* new tests
+
 # 0.5.1
 
 * remove old urls form vignettes

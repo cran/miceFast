@@ -8,7 +8,7 @@
 
 //miceFast Constructors
 
-miceFast::miceFast(){};
+miceFast::miceFast(){}
 
 miceFast::~miceFast(){
 
@@ -19,7 +19,7 @@ miceFast::~miceFast(){
 //sorted=false;
 //updated.clear();
 
-};
+}
 
 void miceFast::set_data(arma::mat & _x){
   x = arma::mat(_x.begin(),_x.n_rows,_x.n_cols,false,false);
@@ -50,29 +50,36 @@ void miceFast::set_w(arma::colvec & _w){
   w = arma::colvec(_w.begin(),n_elems,false,false);
 }
 
+void miceFast::set_ridge(double _ridge){
+  ridge = _ridge;
+}
 bool miceFast::is_sorted_byg(){
   if(g.is_empty()){Rcpp::stop("There is no grouping variable provided");}
   return sorted;
-};
+}
 
 arma::mat miceFast::get_data(){
   if(x.is_empty()){Rcpp::stop("There is no data provided");}
-  return x;
-};
+  return this -> x;
+}
 
 arma::colvec miceFast::get_w(){
   if(w.is_empty()){Rcpp::stop("There is no weighting variable provided");}
   return w;
-};
+}
 arma::colvec miceFast::get_g(){
   if(g.is_empty()){Rcpp::stop("There is no grouping variable provided");}
   return g;
-};
+}
+
+double miceFast::get_ridge(){
+  return ridge;
+}
 
 arma::uvec miceFast::get_index(){
   if(x.is_empty()){Rcpp::stop("There is no data provided");}
   return index;
-};
+}
 
 //functions for getting indexes
 
@@ -186,7 +193,7 @@ arma::vec miceFast::vifs(int posit_y,arma::uvec posit_x){
   }
 
   return vifs;
-};
+}
 
 
 //function for printing recommended prediction models
@@ -267,9 +274,9 @@ void miceFast::update_var(int posit_y,arma::vec impute){
 
 }
 
-Rcpp::List miceFast::impute_N(std::string s, int posit_y,arma::uvec posit_x,int times){
+Rcpp::List miceFast::impute_N(std::string s, int posit_y,arma::uvec posit_x,int k){
 
-  if( !(s.compare("lm_bayes") == 0) && !(s.compare("lm_noise") == 0)){Rcpp::stop("Works only for `lm_bayes` and `lm_noise` models");}
+  if( !(s.compare("lm_bayes") == 0) && !(s.compare("lm_noise") == 0) && !(s.compare("pmm") == 0)){Rcpp::stop("Works only for `lm_bayes`, `lm_noise` and `pmm` models");}
   if(!different_y_and_x(posit_y,posit_x)){Rcpp::stop("the same variable is dependent and indepentent");}
   if(!different_x(posit_x)){Rcpp::stop("the same variables repeated few times as independent");}
   if(x.is_empty()){Rcpp::stop("at least set the data");}
@@ -277,7 +284,7 @@ Rcpp::List miceFast::impute_N(std::string s, int posit_y,arma::uvec posit_x,int 
   posit_x =  posit_x - 1;
   posit_y = posit_y - 1;
 
-  arma::colvec pred_avg =  option_impute_multiple(s,posit_y,posit_x,times);
+  arma::colvec pred_avg =  option_impute_multiple(s,posit_y,posit_x,k);
 
   //index
 
@@ -304,9 +311,9 @@ Rcpp::List miceFast::impute(std::string s, int posit_y,arma::uvec posit_x){
   posit_x =  posit_x - 1;
   posit_y = posit_y - 1;
 
-  const int times = 1;
+  const int k = 1;
 
-  arma::colvec pred =  option_impute_multiple(s,posit_y,posit_x,times);
+  arma::colvec pred =  option_impute_multiple(s,posit_y,posit_x,k);
 
   //index
 
@@ -327,40 +334,42 @@ Rcpp::List miceFast::impute(std::string s, int posit_y,arma::uvec posit_x){
 
 // map - implementing functions
 
-typedef arma::colvec (*pfunc)(arma::colvec&,arma::mat&,arma::mat&,int);
-std::map<std::string, pfunc> funMap = {
-  {"lda",fastLda},
-  {"lm_pred",fastLm_pred},
-  {"lm_noise",fastLm_noise},
-  {"lm_bayes",fastLm_bayes}};
+  typedef arma::colvec (*pfunc)(arma::colvec&,arma::mat&,arma::mat&,int, double);
+    std::map<std::string, pfunc> funMap = {
+    {"lda",fastLda},
+    {"lm_pred",fastLm_pred},
+    {"lm_noise",fastLm_noise},
+    {"lm_bayes",fastLm_bayes},
+    {"pmm",pmm_neibo}};
 
 
-arma::colvec miceFast::option_impute_multiple(std::string s,int posit_y,arma::uvec posit_x,int times){
+
+arma::colvec miceFast::option_impute_multiple(std::string s,int posit_y,arma::uvec posit_x,int k){
 
   arma::colvec pred;
 
   if(w.is_empty() && !g.is_empty())
   {
-    pred = miceFast::imputeby(s,posit_y,posit_x,times);
+    pred = miceFast::imputeby(s,posit_y,posit_x,k);
   }
   else if(w.is_empty() && g.is_empty())
   {
-    pred = miceFast::impute_raw(s,posit_y,posit_x,times);
+    pred = miceFast::impute_raw(s,posit_y,posit_x,k);
   }
   else if( !w.is_empty() && g.is_empty())
   {
-    if(s=="lda"){pred = miceFast::impute_raw(s,posit_y,posit_x,times);} else {pred = miceFast::imputeW(s,posit_y,posit_x,times);}
+    if(s=="lda"){pred = miceFast::impute_raw(s,posit_y,posit_x,k);} else {pred = miceFast::imputeW(s,posit_y,posit_x,k);}
   }
   else if(!w.is_empty() && !g.is_empty())
   {
-    if(s=="lda"){pred = miceFast::imputeby(s,posit_y,posit_x,times);} else {pred = miceFast::imputebyW(s,posit_y,posit_x,times);}
+    if(s=="lda"){pred = miceFast::imputeby(s,posit_y,posit_x,k);} else {pred = miceFast::imputebyW(s,posit_y,posit_x,k);}
   }
   return pred;
 
 }
 
 
-arma::colvec miceFast::impute_raw(std::string s, int posit_y,arma::uvec posit_x,int times){
+arma::colvec miceFast::impute_raw(std::string s, int posit_y,arma::uvec posit_x,int k){
 
   arma::uvec posit_y_uvec(1);
   posit_y_uvec(0) = posit_y;
@@ -379,7 +388,7 @@ arma::colvec miceFast::impute_raw(std::string s, int posit_y,arma::uvec posit_x,
   if(!(index_NA.n_elem==0) && ((index_full.n_elem>15 && s=="lda")|| (index_full.n_elem>posit_x.n_elem && s!="lda"))){
 
   pfunc f = funMap[s];
-  pred = (*f)(Y_full,X_full,X_NA,times);
+  pred = (*f)(Y_full,X_full,X_NA,k, ridge);
 
   }
 
@@ -392,7 +401,7 @@ arma::colvec miceFast::impute_raw(std::string s, int posit_y,arma::uvec posit_x,
 
 //Impute with grouping
 
-arma::colvec miceFast::imputeby(std::string s, int posit_y,arma::uvec posit_x, int times){
+arma::colvec miceFast::imputeby(std::string s, int posit_y,arma::uvec posit_x, int k){
 
   if(sorted == false){
     sortData_byg();
@@ -464,7 +473,7 @@ arma::colvec miceFast::imputeby(std::string s, int posit_y,arma::uvec posit_x, i
 
       if((N_obs_chunk<=15 && s=="lda")|| (N_obs_chunk<posit_x.n_elem && s!="lda")){ continue ;}
 
-      arma::colvec pred =  (*fun)(Y_full_0,X_full_0,X_NA_0,times);
+      arma::colvec pred =  (*fun)(Y_full_0,X_full_0,X_NA_0,k, ridge);
 
       //end = start + pred.n_elem - 1;
 
@@ -484,12 +493,14 @@ arma::colvec miceFast::imputeby(std::string s, int posit_y,arma::uvec posit_x, i
 
 //WEIGHTED
 
-typedef arma::colvec (*pfuncw)(arma::colvec&,arma::mat&,arma::colvec&,arma::mat&,int);
-std::map<std::string, pfuncw> funMapw = {{"lm_pred",fastLm_weighted},
-{"lm_noise",fastLm_weighted_noise},
-{"lm_bayes",fastLm_weighted_bayes}};
+  typedef arma::colvec (*pfuncw)(arma::colvec&,arma::mat&,arma::colvec&,arma::mat&,int,double);
+  std::map<std::string, pfuncw> funMapw = {{"lm_pred",fastLm_weighted},
+  {"lm_noise",fastLm_weighted_noise},
+  {"lm_bayes",fastLm_weighted_bayes},
+  {"pmm",pmm_weighted_neibo}};
 
-arma::colvec miceFast::imputeW(std::string s,int posit_y,arma::uvec posit_x,int times){
+
+arma::colvec miceFast::imputeW(std::string s,int posit_y,arma::uvec posit_x,int k){
 
   arma::uvec posit_y_uvec(1);
   posit_y_uvec(0) = posit_y;
@@ -513,7 +524,7 @@ arma::colvec miceFast::imputeW(std::string s,int posit_y,arma::uvec posit_x,int 
   if(!(index_NA.n_elem==0) && ((X_full.n_rows>15 && s=="lda")|| (index_full.n_elem>posit_x.n_elem && s!="lda"))){
 
   pfuncw f = funMapw[s];
-  pred = (*f)(Y_full,X_full,w_full,X_NA,times);
+  pred = (*f)(Y_full,X_full,w_full,X_NA,k, ridge);
 
   }
 
@@ -525,7 +536,7 @@ arma::colvec miceFast::imputeW(std::string s,int posit_y,arma::uvec posit_x,int 
 
 //Impute with grouping
 
-arma::colvec miceFast::imputebyW(std::string s,int posit_y,arma::uvec posit_x,int times){
+arma::colvec miceFast::imputebyW(std::string s,int posit_y,arma::uvec posit_x,int k){
 
   if(!sorted){
     sortData_byg();
@@ -599,7 +610,7 @@ arma::colvec miceFast::imputebyW(std::string s,int posit_y,arma::uvec posit_x,in
 
     if((N_obs_chunk<=15 && s=="lda")|| (N_obs_chunk<posit_x.n_elem && s!="lda")){ continue ;}
 
-    arma::colvec pred =  (*fun)(Y_full_0,X_full_0,w_full_0,X_NA_0,times);
+    arma::colvec pred =  (*fun)(Y_full_0,X_full_0,w_full_0,X_NA_0,k, ridge);
 
     //end = start + pred.n_elem - 1;
 
@@ -632,6 +643,7 @@ RCPP_MODULE(miceFast){
     .method("get_data", &miceFast::get_data)
     .method("get_w", &miceFast::get_w)
     .method("get_g", &miceFast::get_g)
+    .method("get_ridge", &miceFast::get_ridge)
     .method("get_index", &miceFast::get_index)
     .method("is_sorted_byg", &miceFast::is_sorted_byg)
     .method("which_updated", &miceFast::which_updated)
@@ -642,9 +654,9 @@ RCPP_MODULE(miceFast){
     .method("get_models", &miceFast::get_models)
     .method("get_model", &miceFast::get_model)
     .method("set_data", &miceFast::set_data)
-    .method("set_data_sparse", &miceFast::set_data_sparse)
     .method("set_g", &miceFast::set_g)
     .method("set_w", &miceFast::set_w)
+    .method("set_ridge", &miceFast::set_ridge)
     .method("sort_byg",&miceFast::sortData_byg)
 
   ;}

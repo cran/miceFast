@@ -1,23 +1,24 @@
-## ----setup, include=FALSE------------------------------------------------
+## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(echo = FALSE)
 
-## ----echo=TRUE,message=FALSE,warning=FALSE-------------------------------
-library(miceFast);library(data.table);library(magrittr);library(mice);library(car);library(dplyr);library(ggplot2)
+## ----echo=TRUE,message=FALSE,warning=FALSE------------------------------------
+pkgs = c('miceFast','mice','car','ggplot2','dplyr','data.table')
+inst = lapply(pkgs, library, character.only = TRUE)
 
-## ----echo=TRUE-----------------------------------------------------------
+## ----echo=TRUE----------------------------------------------------------------
 set.seed(123456)
 
-## ----eval=FALSE,echo=TRUE------------------------------------------------
+## ----eval=FALSE,echo=TRUE-----------------------------------------------------
 #  system.file("extdata","performance_validity.R",package = "miceFast")
 
-## ----eval=FALSE,echo=TRUE------------------------------------------------
+## ----eval=FALSE,echo=TRUE-----------------------------------------------------
 #  system.file("extdata","images",package = "miceFast")
 
-## ----echo=TRUE-----------------------------------------------------------
+## ----echo=TRUE----------------------------------------------------------------
 # airquality dataset with additional variables
 data(air_miss)
 
-## ----echo=TRUE-----------------------------------------------------------
+## ----echo=TRUE----------------------------------------------------------------
 # VIF - values bigger than 10 (around) suggest that there might be a collinearity problem.
 # VIF is high for Solar.R and x_character which is obvious - x_character is a factor version of numeric Solar.R
 air_miss[,.(VIF(.SD,posit_y='Ozone',
@@ -37,7 +38,7 @@ air_miss[,Solar_R_imp := fill_NA_N(x=.SD,
                                    posit_y='Solar.R',
                                    posit_x=c('Wind','Temp','Intercept'),
                                    w=.SD[['weights']],
-                                   times=100),by=.(groups)] %>%
+                                   k=100),by=.(groups)] %>%
 # Imputations - discrete variable
   .[,x_character_imp := fill_NA(x=.SD,
                                 model="lda",
@@ -65,23 +66,30 @@ air_miss[,Solar_R_imp := fill_NA_N(x=.SD,
                              posit_x=c('Intercept','x_character_imp','Wind','Temp'),
                              w=.SD[['weights']],
                              logreg=TRUE,
-                             times=30)] %>% 
+                             k=30)] %>% 
   .[,Ozone_imp4 := fill_NA_N(x=.SD, 
                              model="lm_bayes",
                              posit_y='Ozone',
                              posit_x=c('Intercept','x_character_imp','Wind','Temp'),
                              w=.SD[['weights']],
                              logreg=TRUE,
-                             times=30)] %>% 
+                             k=30)] %>% 
   .[,Ozone_imp5 := fill_NA(x=.SD, 
                            model="lm_pred",
                            posit_y='Ozone',
                            posit_x=c('Intercept','x_character_imp','Wind','Temp'),
                            w=.SD[['weights']],
                            logreg=TRUE),.(groups)] %>%
+  .[,Ozone_imp6 := fill_NA_N(x=.SD, 
+                           model="pmm",
+                           posit_y='Ozone',
+                           posit_x=c('Intercept','x_character_imp','Wind','Temp'),
+                           w=.SD[['weights']],
+                           logreg=TRUE,
+                           k=10),.(groups)] %>%
                            
 # Average of a few methods
-  .[,Ozone_imp_mix := apply(.SD,1,mean),.SDcols=Ozone_imp1:Ozone_imp5] %>% 
+  .[,Ozone_imp_mix := apply(.SD,1,mean),.SDcols=Ozone_imp1:Ozone_imp6] %>% 
   
 # Protecting against collinearity or low number of observations - across small groups
 # Be carful when using a data.table grouping option 
@@ -95,7 +103,7 @@ air_miss[,Solar_R_imp := fill_NA_N(x=.SD,
                                  w=.SD[['weights']]),
                                 error=function(e) .SD[['Ozone_chac']]),.(groups)] 
 
-## ----echo=TRUE-----------------------------------------------------------
+## ----echo=TRUE----------------------------------------------------------------
 # VIF - values bigger than 10 (around) suggest that there might be a collinearity problem.
 # VIF is high for Solar.R and x_character which is obvious - x_character is a factor version of numeric Solar.R
 air_miss %>% do(vifs=VIF(.,posit_y='Ozone',
@@ -144,14 +152,14 @@ mutate(Ozone_imp3 = fill_NA_N(x=.,
                               posit_x=c('Intercept','x_character_imp','Wind','Temp'),
                               w=.[['weights']],
                               logreg=TRUE,
-                              times=30)) %>% 
+                              k=30)) %>% 
 mutate(Ozone_imp4 = fill_NA_N(x=., 
                               model="lm_bayes",
                               posit_y='Ozone',
                               posit_x=c('Intercept','x_character_imp','Wind','Temp'),
                               w=.[['weights']],
                               logreg=TRUE,
-                              times=30)) %>% 
+                              k=30)) %>% 
 group_by(groups) %>%
 do(mutate(.,Ozone_imp5 = fill_NA(x=., 
                                  model="lm_pred",
@@ -159,6 +167,13 @@ do(mutate(.,Ozone_imp5 = fill_NA(x=.,
                                  posit_x=c('Intercept','x_character_imp','Wind','Temp'),
                                  w=.[['weights']],
                                  logreg=TRUE))) %>%
+do(mutate(.,Ozone_imp6 = fill_NA_N(x=., 
+                                 model="pmm",
+                                 posit_y='Ozone',
+                                 posit_x=c('Intercept','x_character_imp','Wind','Temp'),
+                                 w=.[['weights']],
+                                 logreg=TRUE,
+                                 k=20))) %>%
 ungroup() %>%
 # Average of a few methods
 mutate(Ozone_imp_mix = rowMeans(select(.,starts_with("Ozone_imp")))) %>%
@@ -176,7 +191,7 @@ do(mutate(.,Ozone_chac_imp = tryCatch(fill_NA(x=.,
                                       error=function(e) .[['Ozone_chac']]))) %>%
 ungroup()
 
-## ----echo=TRUE-----------------------------------------------------------
+## ----echo=TRUE----------------------------------------------------------------
 # Distribution of imputations vs Distribution of initial data
 air_miss$Ozone_NA = ifelse(is.na(air_miss$Ozone),'imputations','complete')
 air_miss = as.data.table(air_miss)
@@ -187,12 +202,12 @@ melt(id=c('Ozone_NA'),measure=c('Ozone','Ozone_imp_mix')) %>%
 ggplot2::ggplot(.,ggplot2::aes(x=value,fill=variable)) + 
 ggplot2::geom_density() + ggplot2::facet_wrap(Ozone_NA ~.,scales='free')
 
-## ----echo=TRUE-----------------------------------------------------------
+## ----echo=TRUE----------------------------------------------------------------
 #install.packages("mice")
 data = cbind(as.matrix(mice::nhanes),intercept=1,index=1:nrow(mice::nhanes))
 model = new(miceFast)
 model$set_data(data) #providing data by a reference
-
+model$get_ridge()
 model$update_var(2,model$impute("lm_pred",2,5)$imputations)
 #OR not recommended
 #data[,2] = model$impute("lm_pred",2,5)$imputations
@@ -216,7 +231,7 @@ head(data,3)
 head(mice::nhanes,3)
 rm(model)
 
-## ----echo=TRUE-----------------------------------------------------------
+## ----echo=TRUE----------------------------------------------------------------
 data = cbind(as.matrix(airquality[,-5]),intercept=1,index=1:nrow(airquality))
 weights = rgamma(nrow(data),3,3) # a numeric vector - positive values
 groups = as.numeric(airquality[,5]) # a numeric vector not integers - positive values - sorted increasingly
@@ -244,7 +259,7 @@ head(cbind(data,groups,weights),3)
 rm(model)
 
 
-## ----echo=TRUE-----------------------------------------------------------
+## ----echo=TRUE----------------------------------------------------------------
 data = cbind(as.matrix(airquality[,-5]),intercept = 1,index = 1:nrow(airquality))
 weights = rgamma(nrow(data),3,3) # a numeric vector - positive values
 #groups = as.numeric(airquality[,5]) # a numeric vector not integers - positive values
@@ -274,21 +289,21 @@ head(cbind(data,groups,weights),4) #is sorted by g cause we provide data by a re
 rm(model)
 
 
-## ----echo=TRUE-----------------------------------------------------------
+## ----echo=TRUE----------------------------------------------------------------
 #str(mtcars)
 mtcars$cyl= factor(mtcars$cyl)
 mtcars$gear= factor(mtcars$gear)
 mtcars_mat = model.matrix.lm(~.,mtcars,na.action="na.pass")
 #str(mtcars_mat)
 
-## ----echo=TRUE-----------------------------------------------------------
+## ----echo=TRUE----------------------------------------------------------------
 airquality2 = airquality
 airquality2$Temp2 = airquality2$Temp**2
 airquality2$Month = factor(airquality2$Month)
 
 car::vif(lm(Ozone ~ ., data=airquality2))
 
-## ----echo=TRUE-----------------------------------------------------------
+## ----echo=TRUE----------------------------------------------------------------
 data_DT = data.table(airquality2)
 data_DT[,.(vifs=VIF(x=.SD,
                 posit_y='Ozone',
