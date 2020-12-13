@@ -556,17 +556,19 @@ arma::colvec pmm_weighted_neibo( arma::colvec &y, arma::mat &X,arma::colvec &w,a
     noise2b.randn();
 
     arma::colvec coef3 =  coef2 + arma::trans(arma::chol(xinv)) * noise2b * sigma_b;
-       coef3.replace(datum::nan, 0);
+    coef3.replace(datum::nan, 0);
 
     arma::colvec ypred_mis = X1 * coef3 + noise2 * sigma_b;
 
-    arma::colvec y_full = arma::sort(y);
+    arma::colvec ypred_full =  X * coef2;
+
+    arma::colvec y_full = arma::sort(ypred_full);
 
     arma::colvec yimp = neibo(y_full,ypred_mis,k);
 
     return yimp;
 }
-
+// [[Rcpp::export]]
 arma::colvec pmm_neibo( arma::colvec &y, arma::mat &X,arma::mat &X1,int k, double ridge) {
 
   int N = X.n_rows; int C = X.n_cols; int C_NA = X1.n_cols;int N_NA = X1.n_rows;
@@ -594,7 +596,10 @@ arma::colvec pmm_neibo( arma::colvec &y, arma::mat &X,arma::mat &X1,int k, doubl
     coef3.replace(datum::nan, 0);
 
     arma::colvec ypred_mis =  X1 * coef3 + noise2 * sigma_b;
-    arma::colvec y_full = arma::sort(y);
+
+    arma::colvec ypred_full =  X * coef2;
+
+    arma::colvec y_full = arma::sort(ypred_full);
 
     arma::colvec yimp = neibo(y_full,ypred_mis,k);
 

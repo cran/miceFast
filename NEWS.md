@@ -1,3 +1,18 @@
+# 0.6.8
+
+* update broken vignette links
+
+# 0.6.6
+
+* solve broken UpSetR::upset reference links
+
+# 0.6.5
+
+* upset_NA based on UpSetR::upset plot function
+* compare_imp plot function
+* new logo
+* remove times argument
+
 # 0.6.2
 
 * R CRAN r-oldrel-windows-ix86+x86_64 problems

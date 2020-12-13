@@ -77,6 +77,12 @@ Usage of `fill_NA` and `fill_NA_N` functions from miceFast - this functions shou
 data(air_miss)
 ```
 
+NA structure
+
+```{r, echo=TRUE}
+upset_NA(air_miss, 6)
+```
+
 ### Intro: data.table
 
 ```{r,echo=TRUE}
@@ -308,15 +314,9 @@ air_miss <- air_miss %>%
 
 ```{r,echo=TRUE}
 # Distribution of imputations vs Distribution of initial data
-air_miss$Ozone_NA <- ifelse(is.na(air_miss$Ozone), "imputations", "complete")
-air_miss <- as.data.table(air_miss)
-
-air_miss[, c("Ozone", "Ozone_imp_mix", "Ozone_NA")] %>%
-  melt(id = c("Ozone_NA"), measure = c("Ozone", "Ozone_imp_mix")) %>%
-  .[(((Ozone_NA == "imputations") & (variable == "Ozone_imp_mix")) | ((Ozone_NA == "complete") & (variable == "Ozone"))), ] %>%
-  ggplot2::ggplot(., ggplot2::aes(x = value, fill = variable)) +
-  ggplot2::geom_density() +
-  ggplot2::facet_wrap(Ozone_NA ~ ., scales = "free")
+compare_imp(air_miss, origin = "Ozone", target = "Ozone_imp_mix")
+# or 
+compare_imp(air_miss, origin = "Ozone", target = c("Ozone_imp2", "Ozone_imp_mix"))
 ```
 
 \newpage
@@ -532,17 +532,17 @@ data_DT[, .(vifs = VIF(
 
 ## Bibliography
 
-URL: http://dirk.eddelbuettel.com/code/rcpp/Rcpp-modules.pdf  
+URL: https://dirk.eddelbuettel.com/code/rcpp/Rcpp-modules.pdf  
 Title: Exposing C++ functions and classes with Rcpp modules Dirk Eddelbuettel and Romain François  
-Author: http://dirk.eddelbuettel.com and  https://romain.rbind.io/   
+Author: https://dirk.eddelbuettel.com and  https://purrple.cat
 Date: March 8, 2018
 
-URL: http://dirk.eddelbuettel.com/papers/RcppArmadillo-intro.pdf  
+URL: https://dirk.eddelbuettel.com/papers/RcppArmadillo-intro.pdf  
 Title: RcppArmadillo: Easily Extending R with High-Performance C++ Code  
 Author: Dirk Eddelbuettel and Conrad Sanderson  
 Date: July 1, 2012
 
-URL: http://dirk.eddelbuettel.com/code/rcpp/Rcpp-introduction.pdf  
+URL: https://dirk.eddelbuettel.com/code/rcpp/Rcpp-introduction.pdf  
 Title: Extending R with C++: A Brief Introduction to Rcpp   
 Author: Dirk Eddelbuettel and James Joseph Balamuta  
 Date: March 8, 2018  
