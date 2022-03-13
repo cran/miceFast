@@ -17,8 +17,8 @@ knitr::opts_chunk$set(echo = FALSE)
 
 Loading the package and setting a seed:
 
-```{r,echo=TRUE,message=FALSE,warning=FALSE}
-pkgs <- c("miceFast", "mice", "car", "ggplot2", "dplyr", "data.table")
+```{r, echo=TRUE,message=FALSE,warning=FALSE}
+pkgs <- c("miceFast", "mice", "ggplot2", "dplyr", "data.table")
 inst <- lapply(pkgs, library, character.only = TRUE)
 ```
 
@@ -29,21 +29,22 @@ set.seed(123456)
 ## Description
 
 Fast imputations under the object-oriented programming paradigm.
-There was used quantitative models with a closed-form solution. Thus package is based on linear algebra operations.
-The biggest improvement in time performance could be achieve for a calculation where a grouping variable have to be used.
+There were quantitative models with a closed-form solution. This package is based on linear algebra operations.
+The biggest improvement in time performance could be achieved for a calculation where a grouping variable has to be used.
 A single evaluation of a quantitative model for the multiple imputations is another major enhancement.
-Moreover there are offered a few functions built to work with popular R packages.
+Moreover there are a few functions built to work with popular R packages.
 
 ## Performance
 
-miceFast was compared[^Environment] with the mice package. For grouping option there was used a basic R looping and popular dplyr/data.table packages.
+miceFast was compared[^Environment] with the mice package. For the grouping option there was used a basic R looping and popular dplyr/data.table packages.
 Summing up, miceFast offer a relevant reduction of a calculations time for:  
 
 - Linear Discriminant Analysis around **(x5)**
 - where a grouping variable have to be used **(around x10 depending on data dimensions and number of groups and even more than x100 although compared to data.table only a few k faster or even the same)** because of pre-sorting by grouping variable
 - multiple imputations is faster around **x(a number of multiple imputations)** because the core of a model is evaluated only ones.
 - Variance inflation factors (VIF) **(x5)** because the unnecessary linear regression is not evaluated - we need only inverse of X'X
-- Predictive mean matching (PMM) **(x100)** because of pre-sorting and binary search
+- Predictive mean matching (PMM) **(x3)** because of pre-sorting and binary search (`mice` algorithm was improved too).
+
 If you are interested about the procedure of testing performance check performance_validity.R file at the extdata folder.
 
 ```{r,eval=FALSE,echo=TRUE}
@@ -58,11 +59,11 @@ system.file("extdata", "images", package = "miceFast")
 
 Moreover there are offered a few functions built to work with the popular R packages such as 'data.table'.
 
-[^Environment]: Environment: R 3.6.3 libopenblas - i7 6700HQ and 24GB DDR4 2133.
+[^Environment]: Environment: R 4.1.3 i7 9750HQ.
 
 ## Motivations
 
-Missing data is a common problem. The easiest solution is to delete observations for which a certain variable is missing. However this will somek deteriorate quality of a project. Another solution will be to use methods such as multiple/regular imputations to fill the missing data. Non missing independent variables could be used to approximate a missing observations for a dependent variable. R or Python language are user-friendly for data manipulation but parallely brings slower computations. Languages such as C++ gives an opportunity to boost our applications or projects.
+Missing data is a common problem. The easiest solution is to delete observations for which a certain variable is missing. However this will somek deteriorate the quality of a project. Another solution will be to use methods such as multiple/regular imputations to fill the missing data. Non missing independent variables could be used to approximate missing observations for a dependent variable. R or Python language are user-friendly for data manipulation but parallely brings slower computations. Languages such as C++ give us an opportunity to boost our applications or projects.
 
 \newpage
 
@@ -81,117 +82,6 @@ NA structure
 
 ```{r, echo=TRUE}
 upset_NA(air_miss, 6)
-```
-
-### Intro: data.table
-
-```{r,echo=TRUE}
-# VIF - values bigger than 10 (around) suggest that there might be a collinearity problem.
-# VIF is high for Solar.R and x_character which is obvious - x_character is a factor version of numeric Solar.R
-air_miss[, .(VIF(.SD,
-  posit_y = "Ozone",
-  posit_x = c(
-    "Solar.R",
-    "Wind",
-    "Temp",
-    "x_character",
-    "Day",
-    "weights",
-    "groups"
-  )
-))]
-
-# IMPUTATIONS
-# Imputations with a grouping option (models are separately assessed for each group)
-# taking into account provided weights
-air_miss[, Solar_R_imp := fill_NA_N(
-  x = .SD,
-  model = "lm_bayes",
-  posit_y = "Solar.R",
-  posit_x = c("Wind", "Temp", "Intercept"),
-  w = .SD[["weights"]],
-  k = 100
-), by = .(groups)] %>%
-  # Imputations - discrete variable
-  .[, x_character_imp := fill_NA(
-    x = .SD,
-    model = "lda",
-    posit_y = "x_character",
-    posit_x = c("Wind", "Temp", "groups")
-  )] %>%
-  # logreg was used because almost log-normal distribution of Ozone
-  # imputations around mean
-  .[, Ozone_imp1 := fill_NA(
-    x = .SD,
-    model = "lm_bayes",
-    posit_y = "Ozone",
-    posit_x = c("Intercept"),
-    logreg = TRUE
-  )] %>%
-  # imputations using positions - Intercept, Temp
-  .[, Ozone_imp2 := fill_NA(
-    x = .SD,
-    model = "lm_bayes",
-    posit_y = 1,
-    posit_x = c(4, 6),
-    logreg = TRUE
-  )] %>%
-  # model with a factor independent variable
-  # multiple imputations (average of x30 imputations)
-  # with a factor independent variable, weights and logreg options
-  .[, Ozone_imp3 := fill_NA_N(
-    x = .SD,
-    model = "lm_noise",
-    posit_y = "Ozone",
-    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
-    w = .SD[["weights"]],
-    logreg = TRUE,
-    k = 30
-  )] %>%
-  .[, Ozone_imp4 := fill_NA_N(
-    x = .SD,
-    model = "lm_bayes",
-    posit_y = "Ozone",
-    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
-    w = .SD[["weights"]],
-    logreg = TRUE,
-    k = 30
-  )] %>%
-  .[, Ozone_imp5 := fill_NA(
-    x = .SD,
-    model = "lm_pred",
-    posit_y = "Ozone",
-    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
-    w = .SD[["weights"]],
-    logreg = TRUE
-  ), .(groups)] %>%
-  .[, Ozone_imp6 := fill_NA_N(
-    x = .SD,
-    model = "pmm",
-    posit_y = "Ozone",
-    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
-    w = .SD[["weights"]],
-    logreg = TRUE,
-    k = 10
-  ), .(groups)] %>%
-
-  # Average of a few methods
-  .[, Ozone_imp_mix := apply(.SD, 1, mean), .SDcols = Ozone_imp1:Ozone_imp6] %>%
-
-  # Protecting against collinearity or low number of observations - across small groups
-  # Be carful when using a data.table grouping option
-  # because of lack of protection against collinearity or low number of observations.
-  # There could be used a tryCatch(fill_NA(...),error=function(e) return(...))
-
-  .[, Ozone_chac_imp := tryCatch(fill_NA(
-    x = .SD,
-    model = "lda",
-    posit_y = "Ozone_chac",
-    posit_x = c("Intercept", "Month", "Day", "Temp", "x_character_imp"),
-    w = .SD[["weights"]]
-  ),
-  error = function(e) .SD[["Ozone_chac"]]
-  ), .(groups)]
 ```
 
 ### Intro: dplyr
@@ -318,6 +208,118 @@ compare_imp(air_miss, origin = "Ozone", target = "Ozone_imp_mix")
 # or 
 compare_imp(air_miss, origin = "Ozone", target = c("Ozone_imp2", "Ozone_imp_mix"))
 ```
+### Intro: data.table
+
+```{r,echo=TRUE}
+data(air_miss)
+setDT(air_miss)
+# VIF - values bigger than 10 (around) suggest that there might be a collinearity problem.
+# VIF is high for Solar.R and x_character which is obvious - x_character is a factor version of numeric Solar.R
+air_miss[, .(VIF(.SD,
+  posit_y = "Ozone",
+  posit_x = c(
+    "Solar.R",
+    "Wind",
+    "Temp",
+    "x_character",
+    "Day",
+    "weights",
+    "groups"
+  )
+))]
+
+# IMPUTATIONS
+# Imputations with a grouping option (models are separately assessed for each group)
+# taking into account provided weights
+air_miss[, Solar_R_imp := fill_NA_N(
+  x = .SD,
+  model = "lm_bayes",
+  posit_y = "Solar.R",
+  posit_x = c("Wind", "Temp", "Intercept"),
+  w = .SD[["weights"]],
+  k = 100
+), by = .(groups)] %>%
+  # Imputations - discrete variable
+  .[, x_character_imp := fill_NA(
+    x = .SD,
+    model = "lda",
+    posit_y = "x_character",
+    posit_x = c("Wind", "Temp", "groups")
+  )] %>%
+  # logreg was used because almost log-normal distribution of Ozone
+  # imputations around mean
+  .[, Ozone_imp1 := fill_NA(
+    x = .SD,
+    model = "lm_bayes",
+    posit_y = "Ozone",
+    posit_x = c("Intercept"),
+    logreg = TRUE
+  )] %>%
+  # imputations using positions - Intercept, Temp
+  .[, Ozone_imp2 := fill_NA(
+    x = .SD,
+    model = "lm_bayes",
+    posit_y = 1,
+    posit_x = c(4, 6),
+    logreg = TRUE
+  )] %>%
+  # model with a factor independent variable
+  # multiple imputations (average of x30 imputations)
+  # with a factor independent variable, weights and logreg options
+  .[, Ozone_imp3 := fill_NA_N(
+    x = .SD,
+    model = "lm_noise",
+    posit_y = "Ozone",
+    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
+    w = .SD[["weights"]],
+    logreg = TRUE,
+    k = 30
+  )] %>%
+  .[, Ozone_imp4 := fill_NA_N(
+    x = .SD,
+    model = "lm_bayes",
+    posit_y = "Ozone",
+    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
+    w = .SD[["weights"]],
+    logreg = TRUE,
+    k = 30
+  )] %>%
+  .[, Ozone_imp5 := fill_NA(
+    x = .SD,
+    model = "lm_pred",
+    posit_y = "Ozone",
+    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
+    w = .SD[["weights"]],
+    logreg = TRUE
+  ), .(groups)] %>%
+  .[, Ozone_imp6 := fill_NA_N(
+    x = .SD,
+    model = "pmm",
+    posit_y = "Ozone",
+    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
+    w = .SD[["weights"]],
+    logreg = TRUE,
+    k = 10
+  ), .(groups)] %>%
+
+  # Average of a few methods
+  .[, Ozone_imp_mix := apply(.SD, 1, mean), .SDcols = Ozone_imp1:Ozone_imp6] %>%
+
+  # Protecting against collinearity or low number of observations - across small groups
+  # Be careful when using a data.table grouping option
+  # because of lack of protection against collinearity or low number of observations.
+  # There could be used a tryCatch(fill_NA(...),error=function(e) return(...))
+
+  .[, Ozone_chac_imp := tryCatch(fill_NA(
+    x = .SD,
+    model = "lda",
+    posit_y = "Ozone_chac",
+    posit_x = c("Intercept", "Month", "Day", "Temp", "x_character_imp"),
+    w = .SD[["weights"]]
+  ),
+  error = function(e) .SD[["Ozone_chac"]]
+  ), .(groups)]
+```
 
 \newpage
 
@@ -352,9 +354,9 @@ relevant class methods:
 
 - `set_data(x)` - providing the data by a reference - a numeric matrix [void]
 - `get_data()` - retrieving the data [return a numeric matrix] - the same values as provided by reference x, recommended to use x directly
-- `set_g(g)` - providing the grouping variable by a reference - a numeric vector - positive values [void]
+- `set_g(g)` - providing the grouping variable by a reference - a numeric vector WITOUT NA values - positive values [void]
 - `get_g()` - retrieving the grouping variable [return a numeric vector] - the same values as provided by reference g, recommended to use g directly
-- `set_w(w)` - providing the weighting variable by a reference - a numeric vector - positive values
+- `set_w(w)` - providing the weighting variable by a reference - a numeric vector WITOUT NA values - positive values
 - `get_w()` - retrieving the weighting variable [return a numeric vector] - the same values as provided by reference w, recommended to use w directly
 - `get_index()` - getting the index [return a integer vector] - useful after automatic sorting procedure
 -  `set_ridge(ridge)` - providing a ridge i.e. the disturbance to diag of XX, default 1e-6
@@ -372,6 +374,7 @@ relevant class methods:
 `g` : numeric vector - you could build it form several discrete variables  
 `w`:  numeric vector with positive values - weights for weighted linear regressions  
 `model`: character - a possible options ("lda","lm_pred","lm_bayes","lm_noise")  
+`model2`: character - a possible options ("lm_bayes","lm_noise", "pmm")
 `posit_y`: integer - a position of dependent variable  
 `posit_x`: integer vector - positions of independent variables  
 `imputations` : numeric vector - imputations  
@@ -433,7 +436,7 @@ model$set_data(data) # providing data by a reference
 model$set_w(weights) # providing by a reference
 model$set_g(groups) # providing by a reference
 
-# impute adapt to provided parmaters like w or g
+# impute adapt to provided parameters like w or g
 # Simple mean - permanent imputation at the object and data
 model$update_var(1, model$impute("lm_pred", 1, c(6))$imputations)
 
@@ -491,7 +494,7 @@ rm(model)
 
 **matrix from data.frame**
 
-Remember that a matrix could be build only under a one data type so factor/character variables have to be melted.
+Remember that a matrix could be built only under a one data type so factor/character variables have to be melted.
 Sb could use `model.matrix` to get numeric matrix from a `data.frame`:
 
 ```{r,echo=TRUE}
@@ -504,14 +507,14 @@ mtcars_mat <- model.matrix.lm(~., mtcars, na.action = "na.pass")
 
 **Variance inflation factors (VIF)**
 
-VIF measure how much the variance of the estimated regression coefficients are inflated. It helps to identify when the predictor variables are linearly related. You have to decide which variable should be delete. Values higher than 10 signal a potential collinearity problem.
+VIF measures how much the variance of the estimated regression coefficients are inflated. It helps to identify when the predictor variables are linearly related. You have to decide which variable should be deleted. Values higher than 10 signal a potential collinearity problem.
 
 ```{r,echo=TRUE}
 airquality2 <- airquality
 airquality2$Temp2 <- airquality2$Temp**2
 airquality2$Month <- factor(airquality2$Month)
 
-car::vif(lm(Ozone ~ ., data = airquality2))
+# car::vif(lm(Ozone ~ ., data = airquality2))
 ```
 
 

@@ -5,6 +5,8 @@
 #' @param target character vector - names of variables with applied imputations
 #' @return ggplot2 object
 #' @examples
+#' library(miceFast)
+#' library(ggplot2)
 #' data(air_miss)
 #' air_miss$Ozone_imp <- fill_NA(
 #'     x = air_miss,
@@ -25,16 +27,23 @@
 #' compare_imp(air_miss, origin = "Ozone", c("Ozone_imp", 'Ozone_imp2'))
 #'
 compare_imp = function(df, origin, target) {
-  assert_that(inherits(df, "data.frame"))
-  assert_that(inherits(origin, "character"))
-  assert_that(inherits(target, "character"))
+  stopifnot(inherits(df, "data.frame"))
+  stopifnot(inherits(origin, "character"))
+  stopifnot(inherits(target, "character"))
+  stopifnot(all(c(origin, target) %in% colnames(df)))
 
-  data = as.data.frame(df)
-  data$origin_NA <- ifelse(is.na(data[[origin]]) , "missing", "complete")
-  data_long <- tidyr::pivot_longer(data[,c(origin, "origin_NA", target)], !all_of("origin_NA"))
-  data_final <- data_long[(((data_long$origin_NA == "missing") & (data_long$name %in% target)) | ((data_long$origin_NA == "complete") & (data_long$name == origin))), ]
-  ggplot2::ggplot(data_final, ggplot2::aes_string(x = "value", fill = "name", group = "name")) +
-  ggplot2::geom_density(alpha = 0.4)
+  if (suppressPackageStartupMessages(requireNamespace("ggplot2", quietly = TRUE))) {
+    data <- as.data.frame(df)
+    data$origin_NA <- ifelse(is.na(data[[origin]]) , "missing", "complete")
+    data_long <- utils::stack(data[, c(origin, target)])
+    data_long <- cbind(data_long, origin_NA = rep(data$origin_NA, length(c(origin, target))))
+    colnames(data_long) <- c("value", "name", "origin_NA")
+    data_final <- data_long[(((data_long$origin_NA == "missing") & (data_long$name %in% target)) | ((data_long$origin_NA == "complete") & (data_long$name == origin))), ]
+    ggplot2::ggplot(data_final, ggplot2::aes_string(x = "value", fill = "name", group = "name")) +
+      ggplot2::geom_density(alpha = 0.4)
+  } else {
+    stop("Please install ggplot2 package to use the compare_imp function.")
+  }
 }
 
 #' upset plot for NA values
@@ -52,12 +61,18 @@ compare_imp = function(df, origin, target) {
 #' IEEE Transactions on Visualization and Computer Graphics (Proceedings of InfoVis 2014), vol 20, pp. 1983-1992, (2014).
 #' @references Lex and Gehlenborg (2014). Points of view: Sets and intersections. Nature Methods 11, 779 (2014). \url{https://www.nature.com/articles/nmeth.3033}
 #' @examples
+#' library(miceFast)
+#' library(UpSetR)
 #' upset_NA(airquality)
 #' upset_NA(air_miss, 6)
 #'
 upset_NA <- function(...) {
   args <- list(...)
-  assert_that(inherits(args[[1]], "data.frame"))
-  args[[1]] <- data.frame(Map(function(x) as.integer(is.na(x)), args[[1]]))
-  do.call(UpSetR::upset, args)
+  stopifnot(inherits(args[[1]], "data.frame"))
+  if (requireNamespace("UpSetR", quietly = TRUE)) {
+    args[[1]] <- data.frame(Map(function(x) as.integer(is.na(x)), args[[1]]))
+    do.call(UpSetR::upset, args)
+  } else {
+    stop("Please install UpSetR package to use the upset_NA function.")
+  }
 }

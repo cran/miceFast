@@ -1,12 +1,14 @@
 # miceFast <a href='https://github.com/polkas/miceFast'><img src='man/figures/miceFast_logo.png' align="right" height="200" /></a>
 Maciej Nasinski  
-  pkgdown: https://polkas.github.io/miceFast/index.html
+
+pkgdown: https://polkas.github.io/miceFast/index.html
 
 [**Check the R CRAN for more details**](https://CRAN.R-project.org/package=miceFast)
 
 [![R build status](https://github.com/polkas/miceFast/workflows/R-CMD-check/badge.svg)](https://github.com/polkas/miceFast/actions)
 [![CRAN](http://www.r-pkg.org/badges/version/miceFast)](https://cran.r-project.org/package=miceFast)
-[![codecov](https://codecov.io/gh/Polkas/miceFast/branch/master/graph/badge.svg)](https://codecov.io/gh/Polkas/miceFast)
+[![codecov](https://codecov.io/gh/Polkas/miceFast/branch/master/graph/badge.svg)](https://app.codecov.io/gh/Polkas/miceFast)
+[![Dependencies](https://tinyverse.netlify.com/badge/miceFast)](https://cran.r-project.org/package=miceFast)
 
 Fast imputations under the object-oriented programming paradigm. 	
 Moreover there are offered a few functions built to work with popular R packages such as 'data.table' or 'dplyr'.
@@ -54,7 +56,7 @@ upset_NA(air_miss, 6)
 
 naive_fill_NA(air_miss)
 
-#Check vigniette for an advance usage
+#Check vignette for an advance usage
 #there is required a thorough examination
 
 #Other packages - popular simple solutions
@@ -70,7 +72,7 @@ mice::complete(mice::mice(air_miss, printFlag = F))
 
 |  Function | Description |
 |----------------------|----------------------|
-| `new(miceFast)` | OOP instance with bunch of methods - check vigniette |
+| `new(miceFast)` | OOP instance with bunch of methods - check vignette |
 | `fill_NA()`  |  imputation - lda,lm_pred,lm_bayes,lm_noise |
 | `fill_NA_N()` |   multiple imputation - pmm,lm_bayes,lm_noise |
 | `VIF()` | Variance inflation factor |
@@ -78,12 +80,16 @@ mice::complete(mice::mice(air_miss, printFlag = F))
 | `compare_imp()` | comparing imputations | 
 | `upset_NA()` | visualize NA structure - UpSetR::upset|
 
-Summing up, miceFast offer a relevant reduction of a calculations time for:  
+Summing up, `miceFast` offer a relevant reduction of a calculations time for:  
 
 - Linear Discriminant Analysis around **(x5)**
 - where a grouping variable have to be used **(around x10 depending on data dimensions and number of groups and even more than x100 although compared to data.table only a few k faster or even the same)** because of pre-sorting by grouping variable
 - multiple imputations is faster around **x(a number of multiple imputations)** because the core of a model is evaluated only ones.
 - Variance inflation factors (VIF) **(x5)** because the unnecessary linear regression is not evaluated - we need only inverse of X'X
-- Predictive mean matching (PMM) **(x100)** because of pre-sorting and binary search
+- Predictive mean matching (PMM) **(x3)** because of pre-sorting and binary search (`mice` algorithm was improved too).
+
+![](man/figures/g_summary.png)
+
+Environment: R 4.1.3 i7 9750HQ
 
 If you are interested about the procedure of testing performance and validity check performance_validity.R file at the extdata folder.

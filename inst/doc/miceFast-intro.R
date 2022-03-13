@@ -1,8 +1,8 @@
 ## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(echo = FALSE)
 
-## ----echo=TRUE,message=FALSE,warning=FALSE------------------------------------
-pkgs <- c("miceFast", "mice", "car", "ggplot2", "dplyr", "data.table")
+## ---- echo=TRUE,message=FALSE,warning=FALSE-----------------------------------
+pkgs <- c("miceFast", "mice", "ggplot2", "dplyr", "data.table")
 inst <- lapply(pkgs, library, character.only = TRUE)
 
 ## ----echo=TRUE----------------------------------------------------------------
@@ -20,114 +20,6 @@ data(air_miss)
 
 ## ---- echo=TRUE---------------------------------------------------------------
 upset_NA(air_miss, 6)
-
-## ----echo=TRUE----------------------------------------------------------------
-# VIF - values bigger than 10 (around) suggest that there might be a collinearity problem.
-# VIF is high for Solar.R and x_character which is obvious - x_character is a factor version of numeric Solar.R
-air_miss[, .(VIF(.SD,
-  posit_y = "Ozone",
-  posit_x = c(
-    "Solar.R",
-    "Wind",
-    "Temp",
-    "x_character",
-    "Day",
-    "weights",
-    "groups"
-  )
-))]
-
-# IMPUTATIONS
-# Imputations with a grouping option (models are separately assessed for each group)
-# taking into account provided weights
-air_miss[, Solar_R_imp := fill_NA_N(
-  x = .SD,
-  model = "lm_bayes",
-  posit_y = "Solar.R",
-  posit_x = c("Wind", "Temp", "Intercept"),
-  w = .SD[["weights"]],
-  k = 100
-), by = .(groups)] %>%
-  # Imputations - discrete variable
-  .[, x_character_imp := fill_NA(
-    x = .SD,
-    model = "lda",
-    posit_y = "x_character",
-    posit_x = c("Wind", "Temp", "groups")
-  )] %>%
-  # logreg was used because almost log-normal distribution of Ozone
-  # imputations around mean
-  .[, Ozone_imp1 := fill_NA(
-    x = .SD,
-    model = "lm_bayes",
-    posit_y = "Ozone",
-    posit_x = c("Intercept"),
-    logreg = TRUE
-  )] %>%
-  # imputations using positions - Intercept, Temp
-  .[, Ozone_imp2 := fill_NA(
-    x = .SD,
-    model = "lm_bayes",
-    posit_y = 1,
-    posit_x = c(4, 6),
-    logreg = TRUE
-  )] %>%
-  # model with a factor independent variable
-  # multiple imputations (average of x30 imputations)
-  # with a factor independent variable, weights and logreg options
-  .[, Ozone_imp3 := fill_NA_N(
-    x = .SD,
-    model = "lm_noise",
-    posit_y = "Ozone",
-    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
-    w = .SD[["weights"]],
-    logreg = TRUE,
-    k = 30
-  )] %>%
-  .[, Ozone_imp4 := fill_NA_N(
-    x = .SD,
-    model = "lm_bayes",
-    posit_y = "Ozone",
-    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
-    w = .SD[["weights"]],
-    logreg = TRUE,
-    k = 30
-  )] %>%
-  .[, Ozone_imp5 := fill_NA(
-    x = .SD,
-    model = "lm_pred",
-    posit_y = "Ozone",
-    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
-    w = .SD[["weights"]],
-    logreg = TRUE
-  ), .(groups)] %>%
-  .[, Ozone_imp6 := fill_NA_N(
-    x = .SD,
-    model = "pmm",
-    posit_y = "Ozone",
-    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
-    w = .SD[["weights"]],
-    logreg = TRUE,
-    k = 10
-  ), .(groups)] %>%
-
-  # Average of a few methods
-  .[, Ozone_imp_mix := apply(.SD, 1, mean), .SDcols = Ozone_imp1:Ozone_imp6] %>%
-
-  # Protecting against collinearity or low number of observations - across small groups
-  # Be carful when using a data.table grouping option
-  # because of lack of protection against collinearity or low number of observations.
-  # There could be used a tryCatch(fill_NA(...),error=function(e) return(...))
-
-  .[, Ozone_chac_imp := tryCatch(fill_NA(
-    x = .SD,
-    model = "lda",
-    posit_y = "Ozone_chac",
-    posit_x = c("Intercept", "Month", "Day", "Temp", "x_character_imp"),
-    w = .SD[["weights"]]
-  ),
-  error = function(e) .SD[["Ozone_chac"]]
-  ), .(groups)]
 
 ## ----echo=TRUE----------------------------------------------------------------
 # VIF - values bigger than 10 (around) suggest that there might be a collinearity problem.
@@ -249,6 +141,116 @@ compare_imp(air_miss, origin = "Ozone", target = "Ozone_imp_mix")
 compare_imp(air_miss, origin = "Ozone", target = c("Ozone_imp2", "Ozone_imp_mix"))
 
 ## ----echo=TRUE----------------------------------------------------------------
+data(air_miss)
+setDT(air_miss)
+# VIF - values bigger than 10 (around) suggest that there might be a collinearity problem.
+# VIF is high for Solar.R and x_character which is obvious - x_character is a factor version of numeric Solar.R
+air_miss[, .(VIF(.SD,
+  posit_y = "Ozone",
+  posit_x = c(
+    "Solar.R",
+    "Wind",
+    "Temp",
+    "x_character",
+    "Day",
+    "weights",
+    "groups"
+  )
+))]
+
+# IMPUTATIONS
+# Imputations with a grouping option (models are separately assessed for each group)
+# taking into account provided weights
+air_miss[, Solar_R_imp := fill_NA_N(
+  x = .SD,
+  model = "lm_bayes",
+  posit_y = "Solar.R",
+  posit_x = c("Wind", "Temp", "Intercept"),
+  w = .SD[["weights"]],
+  k = 100
+), by = .(groups)] %>%
+  # Imputations - discrete variable
+  .[, x_character_imp := fill_NA(
+    x = .SD,
+    model = "lda",
+    posit_y = "x_character",
+    posit_x = c("Wind", "Temp", "groups")
+  )] %>%
+  # logreg was used because almost log-normal distribution of Ozone
+  # imputations around mean
+  .[, Ozone_imp1 := fill_NA(
+    x = .SD,
+    model = "lm_bayes",
+    posit_y = "Ozone",
+    posit_x = c("Intercept"),
+    logreg = TRUE
+  )] %>%
+  # imputations using positions - Intercept, Temp
+  .[, Ozone_imp2 := fill_NA(
+    x = .SD,
+    model = "lm_bayes",
+    posit_y = 1,
+    posit_x = c(4, 6),
+    logreg = TRUE
+  )] %>%
+  # model with a factor independent variable
+  # multiple imputations (average of x30 imputations)
+  # with a factor independent variable, weights and logreg options
+  .[, Ozone_imp3 := fill_NA_N(
+    x = .SD,
+    model = "lm_noise",
+    posit_y = "Ozone",
+    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
+    w = .SD[["weights"]],
+    logreg = TRUE,
+    k = 30
+  )] %>%
+  .[, Ozone_imp4 := fill_NA_N(
+    x = .SD,
+    model = "lm_bayes",
+    posit_y = "Ozone",
+    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
+    w = .SD[["weights"]],
+    logreg = TRUE,
+    k = 30
+  )] %>%
+  .[, Ozone_imp5 := fill_NA(
+    x = .SD,
+    model = "lm_pred",
+    posit_y = "Ozone",
+    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
+    w = .SD[["weights"]],
+    logreg = TRUE
+  ), .(groups)] %>%
+  .[, Ozone_imp6 := fill_NA_N(
+    x = .SD,
+    model = "pmm",
+    posit_y = "Ozone",
+    posit_x = c("Intercept", "x_character_imp", "Wind", "Temp"),
+    w = .SD[["weights"]],
+    logreg = TRUE,
+    k = 10
+  ), .(groups)] %>%
+
+  # Average of a few methods
+  .[, Ozone_imp_mix := apply(.SD, 1, mean), .SDcols = Ozone_imp1:Ozone_imp6] %>%
+
+  # Protecting against collinearity or low number of observations - across small groups
+  # Be careful when using a data.table grouping option
+  # because of lack of protection against collinearity or low number of observations.
+  # There could be used a tryCatch(fill_NA(...),error=function(e) return(...))
+
+  .[, Ozone_chac_imp := tryCatch(fill_NA(
+    x = .SD,
+    model = "lda",
+    posit_y = "Ozone_chac",
+    posit_x = c("Intercept", "Month", "Day", "Temp", "x_character_imp"),
+    w = .SD[["weights"]]
+  ),
+  error = function(e) .SD[["Ozone_chac"]]
+  ), .(groups)]
+
+## ----echo=TRUE----------------------------------------------------------------
 # install.packages("mice")
 data <- cbind(as.matrix(mice::nhanes), intercept = 1, index = 1:nrow(mice::nhanes))
 model <- new(miceFast)
@@ -287,7 +289,7 @@ model$set_data(data) # providing data by a reference
 model$set_w(weights) # providing by a reference
 model$set_g(groups) # providing by a reference
 
-# impute adapt to provided parmaters like w or g
+# impute adapt to provided parameters like w or g
 # Simple mean - permanent imputation at the object and data
 model$update_var(1, model$impute("lm_pred", 1, c(6))$imputations)
 
@@ -345,7 +347,7 @@ airquality2 <- airquality
 airquality2$Temp2 <- airquality2$Temp**2
 airquality2$Month <- factor(airquality2$Month)
 
-car::vif(lm(Ozone ~ ., data = airquality2))
+# car::vif(lm(Ozone ~ ., data = airquality2))
 
 ## ----echo=TRUE----------------------------------------------------------------
 data_DT <- data.table(airquality2)

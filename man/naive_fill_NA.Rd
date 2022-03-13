@@ -13,10 +13,10 @@ naive_fill_NA(x)
 \method{naive_fill_NA}{matrix}(x)
 }
 \arguments{
-\item{x}{a numeric matrix or data.frame/data.table (factor/character/numeric/logical)  - variables}
+\item{x}{a numeric matrix or data.frame (factor/character/numeric/logical)  - variables}
 }
 \value{
-load imputations in a similar to the input type
+load imputations in a similar to the input type.
 }
 \description{
 Regular imputations to fill the missing data.
@@ -36,7 +36,7 @@ this is a very simple and fast solution but not recommended, for more complex so
 }
 \examples{
 \dontrun{
-library(naive_fill_NAast)
+library(miceFast)
 data(air_miss)
 naive_fill_NA(air_miss)
 }
