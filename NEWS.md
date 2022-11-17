@@ -1,3 +1,12 @@
+# miceFast 0.8.2
+
+* simplified `naive_fill_NA`, It is a regular sampling imputation now.
+* Fixed `dontrun` examples.
+* replace `ggplot2::aes_string` with  `ggplot2::aes`, as the former is depreciated.
+* regenerate performance benchmarks on R 4.2.1.
+* styler over the code.
+* improve documentation.
+
 # miceFast 0.8.1
 
 * `tinyverse` world, less dependencies.

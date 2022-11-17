@@ -12,18 +12,11 @@ miceFast package for fast multiple imputations.
 	Moreover there are offered a few functions built to work with popular R packages such as 'data.table'.
 }
 \details{
-read vignette for additional information
+Please read the vignette for additional information
 }
 \author{
 Maciej Nasinski
 }
 \references{
-.
-}
-\keyword{ package }
-\seealso{.}
-\examples{
-  \dontrun{
-.
-  }
+\url{https://github.com/Polkas/miceFast}
 }

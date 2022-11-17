@@ -18,7 +18,8 @@ VIF(x, posit_y, posit_x, correct = FALSE)
 \arguments{
 \item{x}{a numeric matrix or data.frame/data.table (factor/character/numeric) - variables}
 
-\item{posit_y}{an integer/character - a position/name of dependent variable}
+\item{posit_y}{an integer/character - a position/name of dependent variable.
+This variable is taken into account only for getting complete cases.}
 
 \item{posit_x}{an integer/character vector - positions/names of independent variables}
 
@@ -30,17 +31,18 @@ load a numeric vector with VIF for all variables provided by posit_x
 \description{
 VIF measure how much the variance of the estimated regression coefficients are inflated.
 It helps to identify when the predictor variables are linearly related.
-You have to decide which variable should be delete. Values higher than 10 signal a potential collinearity problem.
+You have to decide which variable should be delete.
+Usually values higher than 10 (around), mean a collinearity problem.
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{data.frame}: 
+\item \code{VIF(data.frame)}: 
 
-\item \code{data.table}: 
+\item \code{VIF(data.table)}: 
 
-\item \code{matrix}: 
+\item \code{VIF(matrix)}: 
+
 }}
-
 \note{
 vif_corrected = vif_basic^{(1/(2*df))}
 }
@@ -50,21 +52,22 @@ library(miceFast)
 library(data.table)
 
 airquality2 <- airquality
-
+airquality2$Temp2 <- airquality2$Temp**2
+airquality2$Month <- factor(airquality2$Month)
 data_DT <- data.table(airquality2)
 data_DT[, .(vifs = VIF(
   x = .SD,
   posit_y = "Ozone",
   posit_x = c("Solar.R", "Wind", "Temp", "Month", "Day", "Temp2"),
   correct = FALSE
-))][["vifs"]]
+))][["vifs.V1"]]
 
 data_DT[, .(vifs = VIF(
   x = .SD,
   posit_y = 1,
   posit_x = c(2, 3, 4, 5, 6, 7),
   correct = TRUE
-))][["vifs"]]
+))][["vifs.V1"]]
 }
 
 }

@@ -1,9 +1,7 @@
-# miceFast <a href='https://github.com/polkas/miceFast'><img src='man/figures/miceFast_logo.png' align="right" height="200" /></a>
+# miceFast <a href='https://github.com/polkas/miceFast'><img src='man/figures/miceFast_logo.png' align="right" width="200" /></a>
 Maciej Nasinski  
 
-pkgdown: https://polkas.github.io/miceFast/index.html
-
-[**Check the R CRAN for more details**](https://CRAN.R-project.org/package=miceFast)
+[**Check the miceFast website for more details**](https://polkas.github.io/miceFast/index.html)
 
 [![R build status](https://github.com/polkas/miceFast/workflows/R-CMD-check/badge.svg)](https://github.com/polkas/miceFast/actions)
 [![CRAN](http://www.r-pkg.org/badges/version/miceFast)](https://cran.r-project.org/package=miceFast)
@@ -18,7 +16,7 @@ A new major improvement is one of the fastest predictive mean matching in the R 
 
 Performance benchmarks (check performance_validity.R file at extdata).
 
-[Advanced Usage - Vignette](https://CRAN.R-project.org/package=miceFast/vignettes/miceFast-intro.html)
+[Advanced Usage - Vignette](https://polkas.github.io/miceFast/articles/miceFast-intro.html)
 
 ## Installation
 
@@ -56,15 +54,15 @@ upset_NA(air_miss, 6)
 
 naive_fill_NA(air_miss)
 
-#Check vignette for an advance usage
-#there is required a thorough examination
+# Check out the vignette for an advance usage
+# There is required a thorough examination
 
-#Other packages - popular simple solutions
-#Hmisc
-data.frame(Map(function(x) Hmisc::impute(x,'random'), air_miss))
+# Other packages - popular simple solutions
+# Hmisc
+data.frame(Map(function(x) Hmisc::impute(x, 'random'), air_miss))
 
 #mice
-mice::complete(mice::mice(air_miss, printFlag = F))
+mice::complete(mice::mice(air_miss, printFlag = FALSE))
 
 ```
 
@@ -72,7 +70,7 @@ mice::complete(mice::mice(air_miss, printFlag = F))
 
 |  Function | Description |
 |----------------------|----------------------|
-| `new(miceFast)` | OOP instance with bunch of methods - check vignette |
+| `new(miceFast)` | OOP instance with bunch of methods - check out vignette |
 | `fill_NA()`  |  imputation - lda,lm_pred,lm_bayes,lm_noise |
 | `fill_NA_N()` |   multiple imputation - pmm,lm_bayes,lm_noise |
 | `VIF()` | Variance inflation factor |
@@ -90,6 +88,6 @@ Summing up, `miceFast` offer a relevant reduction of a calculations time for:
 
 ![](man/figures/g_summary.png)
 
-Environment: R 4.1.3 i7 9750HQ
+Environment: R 4.2.1 Mac M1
 
 If you are interested about the procedure of testing performance and validity check performance_validity.R file at the extdata folder.

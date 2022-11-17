@@ -1,6 +1,6 @@
 Package: miceFast
 Title: Fast Imputations Using 'Rcpp' and 'Armadillo'
-Version: 0.8.1
+Version: 0.8.2
 Authors@R: person("Maciej", "Nasinski", email = "nasinski.maciej@gmail.com", role = c("aut", "cre"))
 Description: 
   Fast imputations under the object-oriented programming paradigm. 	
@@ -22,9 +22,9 @@ RcppModules: miceFast, corrData
 SystemRequirements: C++11
 NeedsCompilation: yes
 LazyData: true
-RoxygenNote: 7.1.2
-Packaged: 2022-03-13 23:52:26 UTC; maciejnasinski
+RoxygenNote: 7.2.2
+Packaged: 2022-11-17 20:43:40 UTC; maciejnasinski
 Author: Maciej Nasinski [aut, cre]
 Maintainer: Maciej Nasinski <nasinski.maciej@gmail.com>
 Repository: CRAN
-Date/Publication: 2022-03-14 00:10:02 UTC
+Date/Publication: 2022-11-17 21:10:02 UTC
