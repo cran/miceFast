@@ -1,3 +1,13 @@
+# miceFast 0.8.5
+
+* cran related update, `OMP_THREAD_LIMIT`.
+
+# miceFast 0.8.4
+
+* fixed CRAN Notes.
+* style the cpp code.
+* VIF() should be more stable.
+
 # miceFast 0.8.2
 
 * simplified `naive_fill_NA`, It is a regular sampling imputation now.
